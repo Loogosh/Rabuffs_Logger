@@ -1,193 +1,193 @@
-# RABuffs Logger - Полное руководство
+# RABuffs Logger - Complete Guide
 
-Расширение для RABuffs - автоматическое логирование состояния баффов рейда.
-Основа - https://github.com/pepopo978/Rabuffs
+Extension for RABuffs - automatic raid buff state logging.
+Based on - https://github.com/pepopo978/Rabuffs
 ---
 
-## ⚡ Быстрая шпаргалка
+## ⚡ Quick Cheat Sheet
 
 ```lua
-/rablog status        -- Проверка настроек
-/rablog show 1        -- Последний pull
-/rablog detail 1      -- Детали с именами игроков
-/rablog logpoint 5    -- Логировать за 5 сек до pull (по умолчанию)
+/rablog status        -- Check settings
+/rablog show 1        -- Last pull
+/rablog detail 1      -- Details with player names
+/rablog logpoint 5    -- Log 5 sec before pull (default)
 ```
 
-**Файлы:**
-- `RAB_parse_log.py` - парсер
+**Files:**
+- `RAB_parse_log.py` - parser
 - `RAB_parse.bat` - Windows helper  
-- `GUIDE_RU.md` - это руководство
+- `Readme.md` - this guide
 
-**Парсинг:** Скопируй `RAB_parse_log.py` + `RAB_parse.bat` в папку с `WoWCombatLog.txt`, запусти bat.
+**Parsing:** Copy `RAB_parse_log.py` + `RAB_parse.bat` to folder with `WoWCombatLog.txt`, run bat.
 
 ---
 
-## 📦 Установка
+## 📦 Installation
 
-1. Положи папку `RABuffs_Logger` в `Interface/AddOns/`
-2. Должны быть обе папки:
+1. Put `RABuffs_Logger` folder in `Interface/AddOns/`
+2. You should have both folders:
    ```
    AddOns/
-   ├── RABuffs/           (оригинал)
-   └── RABuffs_Logger/    (расширение)
+   ├── RABuffs/           (original)
+   └── RABuffs_Logger/    (extension)
    ```
-3. `/reload` в игре
+3. `/reload` in game
 
-**Требования:**
-- ✅ RABuffs (обязательно)
-- ⭐ SuperWoW (рекомендуется для записи в файл)
-- 🐍 Python 3.6+ (для парсинга логов)
-
----
-
-## 🚀 Быстрый старт
-
-```lua
-/rablog status        -- проверка настроек
-/rablog test 1        -- тестовая запись
-/rablog show 1        -- просмотр
-
--- BigWigs pull таймер
-/pull 5               -- автоматически логируется как pull #5
-
--- Ручное логирование
-/rablog log Naxx40 6  -- залогировать профиль "Naxx40" как pull 6
-```
+**Requirements:**
+- ✅ RABuffs (required)
+- ⭐ SuperWoW (recommended for file writing)
+- 🐍 Python 3.6+ (for log parsing)
 
 ---
 
-## 📋 Все команды
+## 🚀 Quick Start
 
-### Просмотр логов
 ```lua
-/rablog show [N]          -- Последние N записей (по умолчанию 5)
-/rablog detail <N>        -- Детальная информация по записи N (с именами игроков)
-/rablog stats             -- Статистика
-/rablog status            -- Текущие настройки
+/rablog status        -- check settings
+/rablog test 1        -- test entry
+/rablog show 1        -- view
+
+-- BigWigs pull timer
+/pull 5               -- automatically logged as pull #5
+
+-- Manual logging
+/rablog log Naxx40 6  -- log "Naxx40" profile as pull 6
 ```
 
-### Ручное логирование
+---
+
+## 📋 All Commands
+
+### View Logs
 ```lua
-/rablog test [N]                  -- Текущий профиль (pull N)
-/rablog log <профиль> <N>         -- Конкретный профиль по имени
-/rablog logall <N>                -- ВСЕ профили одновременно
+/rablog show [N]          -- Last N entries (default 5)
+/rablog detail <N>        -- Detailed info for entry N (with player names)
+/rablog stats             -- Statistics
+/rablog status            -- Current settings
 ```
 
-**Примеры:**
+### Manual Logging
 ```lua
-/rablog test 999                  -- тест
-/rablog log Naxx40 6              -- профиль Naxx40
-/rablog logall 6                  -- все профили
+/rablog test [N]                  -- Current profile (pull N)
+/rablog log <profile> <N>         -- Specific profile by name
+/rablog logall <N>                -- ALL profiles at once
 ```
 
-### Управление триггерами
+**Examples:**
 ```lua
-/rablog trigger list              -- Показать все триггеры
-/rablog trigger add <паттерн>     -- Добавить триггер
-/rablog trigger remove <N>        -- Удалить триггер N
+/rablog test 999                  -- test
+/rablog log Naxx40 6              -- Naxx40 profile
+/rablog logall 6                  -- all profiles
 ```
 
-**Примеры триггеров:**
+### Trigger Management
 ```lua
-/rablog trigger add го%s+(%d+)           -- "го 5"
+/rablog trigger list              -- Show all triggers
+/rablog trigger add <pattern>     -- Add trigger
+/rablog trigger remove <N>        -- Remove trigger N
+```
+
+**Trigger Examples:**
+```lua
+/rablog trigger add go%s+(%d+)           -- "go 5"
 /rablog trigger add ready%s+(%d+)        -- "ready 3"
 /rablog trigger add boss%s+(%d+)         -- "boss 1"
 ```
 
-**Стандартные (уже есть):**
+**Default (already included):**
 - `pull%s+(%d+)` → "pull 6"
 - `пулл%s+(%d+)` → "пулл 3"
 - `тянем%s+(%d+)` → "тянем 5"
 - `пул%s+(%d+)` → "пул 10"
 
-### Фильтр профилей
+### Profile Filter
 ```lua
-/rablog profile list              -- Показать фильтр
-/rablog profile add <имя>         -- Добавить профиль в автологирование
-/rablog profile remove <имя>      -- Убрать профиль из автологирования
-/rablog profile clear             -- Очистить (логировать только текущий)
+/rablog profile list              -- Show filter
+/rablog profile add <name>         -- Add profile to auto-logging
+/rablog profile remove <name>      -- Remove profile from auto-logging
+/rablog profile clear             -- Clear (log only current)
 ```
 
-**Примеры:**
+**Examples:**
 ```lua
 /rablog profile add Naxx_Healers
 /rablog profile add Naxx_Tanks
--- Теперь при pull логируются оба профиля!
+-- Now on pull both profiles are logged!
 
-/rablog profile clear             -- вернуться к текущему
+/rablog profile clear             -- return to current only
 ```
 
-### Настройки
+### Settings
 ```lua
-/rablog toggle        -- Вкл/выкл логирование
-/rablog file          -- Вкл/выкл запись в файл (SuperWoW)
-/rablog memory        -- Вкл/выкл SavedVariables
-/rablog clear         -- Очистить память + маркер в файле
-/rablog logpoint <N>  -- Логировать когда осталось N секунд (по умолчанию 5)
-/rablog export        -- Инструкции по экспорту
-/rablog help          -- Помощь
+/rablog toggle        -- Enable/disable logging
+/rablog file          -- Enable/disable file writing (SuperWoW)
+/rablog memory        -- Enable/disable SavedVariables
+/rablog clear         -- Clear memory + marker in file
+/rablog logpoint <N>  -- Log when N seconds remain (default 5)
+/rablog export        -- Export instructions
+/rablog help          -- Help
 ```
 
-**Важно про `/rablog clear`:**
-- Очищает память (SavedVariables)
-- Добавляет маркер `RABLOG_CLEAR` в файл
-- Парсер показывает **только записи после** последнего clear
-- Старые данные остаются в файле, но не обрабатываются
+**Important about `/rablog clear`:**
+- Clears memory (SavedVariables)
+- Adds `RABLOG_CLEAR` marker to file
+- Parser shows **only entries after** last clear
+- Old data remains in file but not processed
 
-**Примеры logpoint:**
+**Logpoint Examples:**
 ```lua
-/rablog logpoint 5    -- логировать когда осталось 5 секунд
-/rablog logpoint 3    -- логировать когда осталось 3 секунды
-/rablog logpoint 10   -- логировать когда осталось 10 секунд
+/rablog logpoint 5    -- log when 5 seconds remain
+/rablog logpoint 3    -- log when 3 seconds remain
+/rablog logpoint 10   -- log when 10 seconds remain
 ```
 
 ---
 
-## 🎯 Как работает автологирование
+## 🎯 How Auto-Logging Works
 
-### 1. BigWigs pull timer (ОСНОВНОЙ)
+### 1. BigWigs Pull Timer (PRIMARY)
 
-Когда **кто-то** делает `/pull 10`:
-- BigWigs показывает таймер (10, 9, 8, 7, 6, **5**...)
-- Logger ждёт пока не останется **5 секунд** (настраивается)
-- **В этот момент** логирует состояние баффов
+When **someone** does `/pull 10`:
+- BigWigs shows timer (10, 9, 8, 7, 6, **5**...)
+- Logger waits until **5 seconds** remain (configurable)
+- **At that moment** logs buff state
 
-**Зачем ждать 5 секунд?**
-- Игроки успевают поставить недостающие баффы
-- Фиксируется **финальное** состояние перед pull'ом
-- Более точные данные для анализа
+**Why wait 5 seconds?**
+- Players have time to apply missing buffs
+- Captures **final** state before pull
+- More accurate data for analysis
 
-**Изменить точку логирования:**
+**Change logging point:**
 ```lua
-/rablog logpoint 3    -- логировать за 3 секунды до pull
-/rablog logpoint 10   -- логировать за 10 секунд до pull
+/rablog logpoint 3    -- log 3 seconds before pull
+/rablog logpoint 10   -- log 10 seconds before pull
 ```
 
-### 2. Триггеры в чате
+### 2. Chat Triggers
 
-Когда кто-то пишет в рейд/пати чат:
-- "pull 6" → логируется pull #6
-- "пулл 3" → логируется pull #3
-- Свои триггеры через `/rablog trigger add`
-
----
-
-## 💾 Где хранятся логи
-
-### С SuperWoW (рекомендуется):
-**Файл:** `Logs/WoWCombatLog.txt`
-- ✅ Запись **мгновенная** (не нужен /reload)
-- ✅ Без лимитов
-- ✅ Автоматически при каждом pull
-
-### Без SuperWoW (запасной):
-**Файл:** `WTF/Account/<ACCOUNT>/SavedVariables/RABuffs_Logger.lua`
-- ⚠️ Нужен `/reload` или выход из игры
-- ⚠️ Максимум 200 записей
+When someone writes in raid/party chat:
+- "pull 6" → logs pull #6
+- "пулл 3" → logs pull #3
+- Custom triggers via `/rablog trigger add`
 
 ---
 
-## 📊 Формат данных в файле
+## 💾 Where Logs are Stored
+
+### With SuperWoW (recommended):
+**File:** `Logs/WoWCombatLog.txt`
+- ✅ Writing is **instant** (no /reload needed)
+- ✅ No limits
+- ✅ Automatically on each pull
+
+### Without SuperWoW (fallback):
+**File:** `WTF/Account/<ACCOUNT>/SavedVariables/RABuffs_Logger.lua`
+- ⚠️ Needs `/reload` or game exit
+- ⚠️ Maximum 200 entries
+
+---
+
+## 📊 Data Format in File
 
 **Logs/WoWCombatLog.txt:**
 ```
@@ -198,193 +198,193 @@
 10/12 09:45:30.127  RABLOG_END: PullNumber
 ```
 
-**Структура:**
-- `RABLOG_PULL` = заголовок события
-- `RABLOG_BAR` = статистика по баффу
-- `RABLOG_PLAYERS_WITH` = кто С баффом
-- `RABLOG_PLAYERS_WITHOUT` = кто БЕЗ баффа
-- `RABLOG_END` = конец записи
+**Structure:**
+- `RABLOG_PULL` = event header
+- `RABLOG_BAR` = buff statistics
+- `RABLOG_PLAYERS_WITH` = who HAS buff
+- `RABLOG_PLAYERS_WITHOUT` = who LACKS buff
+- `RABLOG_END` = end of entry
 
 ---
 
-## 🔧 Парсинг в CSV/JSON
+## 🔧 Parsing to CSV/JSON
 
-### Windows (простой способ)
+### Windows (simple way)
 
-1. Скопируй в папку с `WoWCombatLog.txt`:
+1. Copy to folder with `WoWCombatLog.txt`:
    - `RAB_parse_log.py`
    - `RAB_parse.bat`
 
-2. Дабл-клик на `RAB_parse.bat`
+2. Double-click `RAB_parse.bat`
 
-3. Выбери формат:
-   - `1` = Text (читаемый)
-   - `2` = CSV (для Excel)
+3. Choose format:
+   - `1` = Text (readable)
+   - `2` = CSV (for Excel)
    - `3` = JSON
-   - `4` = Все форматы
-   - `5` = Статистика
+   - `4` = All formats
+   - `5` = Statistics
 
-### Вручную
+### Manually
 
 ```bash
 python RAB_parse_log.py -i WoWCombatLog.txt -f csv -o raid.csv
 python RAB_parse_log.py -i WoWCombatLog.txt --stats
 ```
 
-### Результат CSV
+### CSV Output
 
-**Столбцы:**
+**Columns:**
 - EntryID, DateTime, RealTime, ServerTime
 - PullNumber, Character, Realm, Profile
 - BuffLabel, Buffed, Total, Percentage, Fading
-- **PlayersWithBuff_Names** - имена игроков с баффом
-- **PlayersWithBuff_Classes** - классы
-- **PlayersWithBuff_Groups** - группы
-- **PlayersWithoutBuff_Names** - имена без баффа
-- **PlayersWithoutBuff_Classes** - классы
-- **PlayersWithoutBuff_Groups** - группы
+- **PlayersWithBuff_Names** - names of players with buff
+- **PlayersWithBuff_Classes** - classes
+- **PlayersWithBuff_Groups** - groups
+- **PlayersWithoutBuff_Names** - names without buff
+- **PlayersWithoutBuff_Classes** - classes
+- **PlayersWithoutBuff_Groups** - groups
 
-**В Excel:**
-- Фильтруй по именам
-- Анализируй по классам
-- Группируй по группам рейда
+**In Excel:**
+- Filter by names
+- Analyze by classes
+- Group by raid groups
 
 ---
 
-## 🎮 Примеры использования
+## 🎮 Usage Examples
 
-### Пример 1: Базовое использование
+### Example 1: Basic Usage
 ```lua
-/rablog status        -- проверка
-[играешь, кто-то делает /pull 6]
-/rablog show 1        -- просмотр
+/rablog status        -- check
+[playing, someone does /pull 6]
+/rablog show 1        -- view
 ```
 
-### Пример 2: Свой триггер
+### Example 2: Custom Trigger
 ```lua
-/rablog trigger add го%s+(%d+)
-[РЛ пишет "го 5" в чат]
--- автоматически логируется
+/rablog trigger add go%s+(%d+)
+[RL writes "go 5" in chat]
+-- automatically logged
 ```
 
-### Пример 3: Конкретный профиль
+### Example 3: Specific Profile
 ```lua
 /rablog log Sapphiron 14
--- Логирует профиль "Sapphiron" не переключаясь на него
+-- Logs "Sapphiron" profile without switching to it
 ```
 
-### Пример 4: Несколько профилей одновременно
+### Example 4: Multiple Profiles Simultaneously
 ```lua
 /rablog profile add Naxx_Healers
 /rablog profile add Naxx_Tanks
-[кто-то делает /pull 6]
--- Логируются ОБА профиля автоматически!
+[someone does /pull 6]
+-- BOTH profiles logged automatically!
 ```
 
-### Пример 5: Все профили
+### Example 5: All Profiles
 ```lua
 /rablog logall 0
--- Snapshot всех профилей в одной точке времени
+-- Snapshot of all profiles at one point in time
 ```
 
 ---
 
-## 🔍 Что логируется
+## 🔍 What Gets Logged
 
-Для каждого pull'а:
+For each pull:
 
-**Метаданные:**
-- Время (реальное + серверное)
-- Номер pull
-- Кто запустил
-- Профиль RABuffs
-- Размер группы
+**Metadata:**
+- Time (real + server)
+- Pull number
+- Who initiated
+- RABuffs profile
+- Group size
 
-**Для каждого баффа:**
-- Статистика: 38/40 (95%)
-- **Имена С баффом:** Vovan, Petya, Ivan
-- **Имена БЕЗ баффа:** Kolya, Misha
-- **Классы:** Priest, Warrior, Mage
-- **Группы:** 1, 2, 3
+**For each buff:**
+- Statistics: 38/40 (95%)
+- **Names WITH buff:** Vovan, Petya, Ivan
+- **Names WITHOUT buff:** Kolya, Misha
+- **Classes:** Priest, Warrior, Mage
+- **Groups:** 1, 2, 3
 
 ---
 
-## ⚙️ Настройки
+## ⚙️ Settings
 
 ```lua
 RABLogger_Settings = {
-    enabled = true,              -- Вкл/выкл логирование
-    logToFile = true,            -- Запись в файл (SuperWoW)
-    saveToMemory = true,         -- Сохранение в SavedVariables
-    saveDetailed = true,         -- Детальные данные (имена игроков)
-    logToChat = true,            -- Уведомления в чат
-    maxEntries = 200,            -- Макс записей в памяти
+    enabled = true,              -- Enable/disable logging
+    logToFile = true,            -- Write to file (SuperWoW)
+    saveToMemory = true,         -- Save to SavedVariables
+    saveDetailed = true,         -- Detailed data (player names)
+    logToChat = true,            -- Chat notifications
+    maxEntries = 200,            -- Max entries in memory
     
-    triggers = {                 -- Триггеры чата
+    triggers = {                 -- Chat triggers
         "pull%s+(%d+)",
         "пулл%s+(%d+)",
         ...
     },
     
-    profileFilter = {}           -- Фильтр профилей (пусто = текущий)
+    profileFilter = {}           -- Profile filter (empty = current)
 }
 ```
 
-Меняй через команды `/rablog` или вручную через `/run`:
+Change via `/rablog` commands or manually via `/run`:
 ```lua
 /run RABLogger_Settings.maxEntries = 500
 ```
 
 ---
 
-## 🐛 Решение проблем
+## 🐛 Troubleshooting
 
-**Логи не появляются?**
+**Logs not appearing?**
 ```lua
-/rablog toggle        -- проверь что ENABLED
-/rablog test 999      -- создай тестовую запись
-/rablog show 1        -- должна появиться
+/rablog toggle        -- check that ENABLED
+/rablog test 999      -- create test entry
+/rablog show 1        -- should appear
 ```
 
-**BigWigs не логирует?**
+**BigWigs not logging?**
 ```lua
-/reload               -- обнови код
-/pull 5               -- попробуй снова
+/reload               -- refresh code
+/pull 5               -- try again
 ```
 
-Если не помогло - проверь в игре:
+If doesn't help - check in game:
 ```lua
 /run print(BigWigs and "BigWigs OK" or "BigWigs NOT FOUND")
 ```
 
-**Парсер не находит файл?**
+**Parser can't find file?**
 ```bash
-# Скопируй файлы в одну папку с WoWCombatLog.txt
-# Запусти: run_parse_simple.bat
+# Copy files to same folder as WoWCombatLog.txt
+# Run: RAB_parse.bat
 ```
 
-**Нет имён игроков в выводе?**
+**No player names in output?**
 
-Проверь что `saveDetailed = true`:
+Check that `saveDetailed = true`:
 ```lua
 /run print(RABLogger_Settings.saveDetailed)
 ```
 
-Если `nil` или `false`:
+If `nil` or `false`:
 ```lua
 /run RABLogger_Settings.saveDetailed = true
 /reload
 /rablog test 5
-/rablog detail 1      -- теперь должны быть имена
+/rablog detail 1      -- now should have names
 ```
 
 ---
 
-## 📖 Что такое профиль RABuffs
+## 📖 What is RABuffs Profile
 
-**Профиль** = набор баров (полосок), каждый отслеживает определённый бафф.
+**Profile** = set of bars (strips), each tracking a specific buff.
 
-**Пример профиля "Naxx40":**
+**Example "Naxx40" profile:**
 ```lua
 {
     [1] = { buffKey="motw", label="Mark", groups="12345678", ... },
@@ -393,70 +393,70 @@ RABLogger_Settings = {
 }
 ```
 
-**Команды RABuffs:**
+**RABuffs Commands:**
 ```lua
-/rab profile list             -- показать все профили
-/rab profile save Naxx40      -- создать профиль "Naxx40"
-/rab profile load Naxx40      -- загрузить профиль "Naxx40"
+/rab profile list             -- show all profiles
+/rab profile save Naxx40      -- create "Naxx40" profile
+/rab profile load Naxx40      -- load "Naxx40" profile
 ```
 
-**Зачем нужно логировать разные профили?**
+**Why log different profiles?**
 
-У тебя может быть:
-- Профиль для всех 40 игроков
-- Профиль только для хилов (группы 1-5)
-- Профиль только для танков
-- Профиль для конкретного босса (Sapphiron с Shadow Protection)
+You might have:
+- Profile for all 40 players
+- Profile only for healers (groups 1-5)
+- Profile only for tanks
+- Profile for specific boss (Sapphiron with Shadow Protection)
 
-Logger может логировать **несколько профилей одновременно** при одном pull!
+Logger can log **multiple profiles simultaneously** on one pull!
 
 ---
 
-## 🎯 Сценарии использования
+## 🎯 Usage Scenarios
 
-### Сценарий 1: Одиночный профиль (простой)
+### Scenario 1: Single Profile (simple)
 ```lua
--- Ничего не настраивай
--- При /pull 6 логируется текущий профиль
+-- Don't configure anything
+-- On /pull 6 current profile is logged
 ```
 
-### Сценарий 2: Свой триггер
+### Scenario 2: Custom Trigger
 ```lua
-/rablog trigger add го%s+(%d+)
--- Теперь ловит и "pull 5" и "го 5"
+/rablog trigger add go%s+(%d+)
+-- Now catches both "pull 5" and "go 5"
 ```
 
-### Сценарий 3: Несколько профилей
+### Scenario 3: Multiple Profiles
 ```lua
 /rablog profile add Naxx_Healers
 /rablog profile add Naxx_Tanks
--- При /pull 6 логируются ОБА профиля
+-- On /pull 6 BOTH profiles are logged
 ```
 
-### Сценарий 4: Все профили (полный snapshot)
+### Scenario 4: All Profiles (full snapshot)
 ```lua
 /rablog logall 0
--- Логирует ВСЕ профили в одной точке времени
+-- Logs ALL profiles at one point in time
 ```
 
 ---
 
-## 📝 Формат вывода
+## 📝 Output Format
 
-### В игре (/rablog detail 1):
+### In Game (/rablog detail 1):
 ```
 Pull 5 - Naxx40
 
 Mark of the Wild (motw):
-  С баффом: Vovan, Petya
-  Без баффа: Kolya, Misha
+  With buff: Vovan, Petya
+  Without buff: Kolya, Misha
 
 Fortitude (pwf):
-  С баффом: Vovan, Petya, Kolya, Misha
-  Без баффа: (все есть)
+  With buff: Vovan, Petya, Kolya, Misha
+  Without buff: (all have it)
 ```
 
-### В файле (WoWCombatLog.txt):
+### In File (WoWCombatLog.txt):
 ```
 RABLOG_PULL: 2025-10-12 09:45:30&...&5&Naxx40&...
 RABLOG_BAR: 1&motw&Mark&38&40&95&2&&
@@ -465,77 +465,77 @@ RABLOG_PLAYERS_WITHOUT: motw&Kolya [Mage; G3], Misha [Rogue; G4]
 RABLOG_END: 5
 ```
 
-### В CSV (Excel):
+### In CSV (Excel):
 | BuffLabel | Buffed | Total | Percentage | PlayersWithBuff_Names | PlayersWithoutBuff_Names | PlayersWithoutBuff_Classes | PlayersWithoutBuff_Groups |
 |-----------|--------|-------|------------|----------------------|-------------------------|---------------------------|--------------------------|
 | Mark | 38 | 40 | 95 | Vovan, Petya | Kolya, Misha | Mage, Rogue | 3, 4 |
 
 ---
 
-## 🔢 Временные метки
+## 🔢 Timestamps
 
-Каждая запись содержит **3 типа времени:**
+Each entry contains **3 types of time:**
 
-- **Real Time** (09:45:30) - время твоего компьютера
-- **Server Time** (18:45) - игровое серверное время
-- **DateTime** (2025-10-12 09:45:30) - полная дата + время
+- **Real Time** (09:45:30) - your computer's time
+- **Server Time** (18:45) - in-game server time
+- **DateTime** (2025-10-12 09:45:30) - full date + time
 
-Зачем:
-- Коррелировать с внешними логами (real time)
-- Сопоставлять с игровыми событиями (server time)
-- Точные вычисления (unix timestamp)
+Why:
+- Correlate with external logs (real time)
+- Match with in-game events (server time)
+- Precise calculations (unix timestamp)
 
 ---
 
-## 📚 Структура файлов
+## 📚 File Structure
 
 ```
 RABuffs_Logger/
-├── RABuffs_Logger.toc          # Метаданные аддона
-├── Logger_Core.lua             # Основная логика
-├── Logger_Export.lua           # Функции экспорта
+├── RABuffs_Logger.toc          # Addon metadata
+├── Logger_Core.lua             # Core logic
+├── Logger_Export.lua           # Export functions
 │
-├── parse_combatlog.py          # Парсер логов
-├── run_parse_simple.bat        # Windows helper
+├── RAB_parse_log.py            # Log parser
+├── RAB_parse.bat               # Windows helper
 │
-└── GUIDE_RU.md                 # Это руководство
+└── Readme.md                   # This guide
 ```
 
 ---
 
-## 🚀 Типичный рейд
+## 🚀 Typical Raid
 
-### Перед рейдом:
+### Before Raid:
 ```lua
-/rablog status        -- проверка
-/rablog clear         -- очистка (опционально)
+/rablog status        -- check
+/rablog clear         -- clear (optional)
 ```
 
-### Во время рейда:
-- Ничего не делай! 
-- Логи пишутся автоматически при `/pull`
+### During Raid:
+- Do nothing! 
+- Logs are written automatically on `/pull`
 
-### После рейда:
+### After Raid:
 ```lua
-/rablog stats         -- статистика
+/rablog stats         -- statistics
 ```
 
 ```bash
-# Парсинг в CSV
-python parse_combatlog.py -f csv -o raid_12_10.csv
-# Открой в Excel
+# Parse to CSV
+python RAB_parse_log.py -f csv -o raid_12_10.csv
+# Open in Excel
 ```
 
 ---
 
-## 💡 Продвинутые фишки
+## 💡 Advanced Features
 
-### Мультипрофильный анализ
+### Multi-Profile Analysis
 
-У тебя 3 профиля:
-- **Naxx_All** - все бары для всех игроков
-- **Naxx_Healers** - только хилы (группы 1-5)
-- **Naxx_Tanks** - только танки
+You have 3 profiles:
+- **Naxx_All** - all bars for all players
+- **Naxx_Healers** - only healers (groups 1-5)
+- **Naxx_Tanks** - only tanks
 
 ```lua
 /rablog profile add Naxx_All
@@ -543,9 +543,9 @@ python parse_combatlog.py -f csv -o raid_12_10.csv
 /rablog profile add Naxx_Tanks
 ```
 
-При `/pull 6` → **3 записи** (одна для каждого профиля)!
+On `/pull 6` → **3 entries** (one for each profile)!
 
-**В CSV:**
+**In CSV:**
 ```csv
 PullNumber,Profile,BuffLabel,Buffed,Total,PlayersWithoutBuff_Names
 6,Naxx_All,Mark,40,40,
@@ -553,85 +553,84 @@ PullNumber,Profile,BuffLabel,Buffed,Total,PlayersWithoutBuff_Names
 6,Naxx_Tanks,Mark,5,5,
 ```
 
-Анализируй покрытие отдельно по танкам/хилам/всем!
+Analyze coverage separately for tanks/healers/all!
 
-### Логирование по имени профиля
+### Logging by Profile Name
 
 ```lua
--- Текущий профиль: Default
--- Но хочешь залогировать Sapphiron
+-- Current profile: Default
+-- But want to log Sapphiron
 
 /rablog log Sapphiron 14
 
--- Текущий профиль НЕ меняется
--- Но Sapphiron залогирован
+-- Current profile DOESN'T change
+-- But Sapphiron is logged
 ```
 
-### Snapshot всех профилей
+### Snapshot All Profiles
 
 ```lua
 /rablog logall 0
--- Логирует ВСЕ профили как pull #0
--- Полный snapshot состояния
+-- Logs ALL profiles as pull #0
+-- Full state snapshot
 ```
 
 ---
 
-## ⚡ Быстрая справка
+## ⚡ Quick Reference
 
-| Команда | Что делает |
+| Command | What it does |
 |---------|-----------|
-| `/rablog test 1` | Тест |
-| `/rablog show 5` | Последние 5 |
-| `/rablog detail 1` | Детали с именами |
-| `/rablog stats` | Статистика |
-| `/rablog status` | Настройки |
-| `/rablog log <prof> <N>` | Логировать профиль |
-| `/rablog trigger add <pat>` | Добавить триггер |
-| `/rablog profile add <name>` | Добавить в фильтр |
-| `/rablog toggle` | Вкл/выкл |
-| `/rablog clear` | Очистить |
+| `/rablog test 1` | Test |
+| `/rablog show 5` | Last 5 |
+| `/rablog detail 1` | Details with names |
+| `/rablog stats` | Statistics |
+| `/rablog status` | Settings |
+| `/rablog log <prof> <N>` | Log profile |
+| `/rablog trigger add <pat>` | Add trigger |
+| `/rablog profile add <name>` | Add to filter |
+| `/rablog toggle` | Enable/disable |
+| `/rablog clear` | Clear |
 
 ---
 
-## 🆘 Поддержка
+## 🆘 Support
 
-**Не работает BigWigs?**
+**BigWigs not working?**
 ```lua
 /run print(BigWigs and "OK" or "NOT FOUND")
 ```
 
-**Нет SuperWoW?**
-- Скачай: https://github.com/balakethelock/SuperWoW
-- Или используй SavedVariables (нужен /reload)
+**No SuperWoW?**
+- Download: https://github.com/balakethelock/SuperWoW
+- Or use SavedVariables (needs /reload)
 
-**Нет Python?**
-- Скачай: https://www.python.org/downloads/
-- При установке: "Add Python to PATH" ✓
+**No Python?**
+- Download: https://www.python.org/downloads/
+- During installation: "Add Python to PATH" ✓
 
 ---
 
-## 📌 Версия
+## 📌 Version
 
 **RABuffs Logger v1.0.0**
 
-Совместим с:
+Compatible with:
 - RABuffs 0.12.0+
-- BigWigs (любая версия)
-- SuperWoW (опционально)
+- BigWigs (any version)
+- SuperWoW (optional)
 - WoW Classic 1.12
 
 ---
 
-## 🔄 Обновление
+## 🔄 Updating
 
-**Обновить RABuffs:**
-- Замени папку `RABuffs/` → Logger продолжит работать
+**Update RABuffs:**
+- Replace `RABuffs/` folder → Logger continues working
 
-**Обновить Logger:**
-- Замени папку `RABuffs_Logger/` → настройки сохранятся
+**Update Logger:**
+- Replace `RABuffs_Logger/` folder → settings are preserved
 
 ---
 
-Расширение для **RABuffs by Pepo** | Использует **SuperWoW API** для записи в файл
-
+Extension for **RABuffs by Pepo** | Uses **SuperWoW API** for file writing
