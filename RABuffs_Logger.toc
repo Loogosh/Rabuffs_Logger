@@ -1,0 +1,12 @@
+## Interface: 11200
+## Title: RABuffs Logger
+## Notes: Extension for RABuffs - logs profile state on raid events
+## Author: Logger Extension
+## Version: 1.0.0
+## Dependencies: RABuffs
+## SavedVariables: RABLogger_Logs, RABLogger_Settings
+## X-Category: Raid
+
+Logger_Core.lua
+Logger_Export.lua
+
