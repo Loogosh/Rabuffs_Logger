@@ -191,7 +191,7 @@ When someone writes in raid/party chat:
 
 **Logs/WoWCombatLog.txt:**
 ```
-10/12 09:45:30.123  RABLOG_PULL: DateTime&RealTime&ServerTime&Pull&Profile&Char&Realm&Source&GroupType/Size
+10/12 09:45:30.123  RABLOG_PULL: DateTime&RealTime&ServerTime&Pull&Profile&Char&Realm&Source&GroupType/Size&Target
 10/12 09:45:30.124  RABLOG_BAR: idx&buffKey&label&buffed&total&pct&fade&groups&classes
 10/12 09:45:30.125  RABLOG_PLAYERS_WITH: buffKey&Name1 [Class1; G1], Name2 [Class2; G2]
 10/12 09:45:30.126  RABLOG_PLAYERS_WITHOUT: buffKey&Name3 [Class3; G3], Name4 [Class4; G4]
@@ -236,6 +236,7 @@ python RAB_parse_log.py -i WoWCombatLog.txt --stats
 **Columns:**
 - EntryID, DateTime, RealTime, ServerTime
 - PullNumber, Character, Realm, Profile
+- SourcePlayer, Target
 - BuffLabel, Buffed, Total, Percentage, Fading
 - **PlayersWithBuff_Names** - names of players with buff
 - **PlayersWithBuff_Classes** - classes
@@ -299,6 +300,7 @@ For each pull:
 - Who initiated
 - RABuffs profile
 - Group size
+- Current target
 
 **For each buff:**
 - Statistics: 38/40 (95%)
@@ -446,6 +448,7 @@ Logger can log **multiple profiles simultaneously** on one pull!
 ### In Game (/rablog detail 1):
 ```
 Pull 5 - Naxx40
+Target: Patchwerk
 
 Mark of the Wild (motw):
   With buff: Vovan, Petya
@@ -458,7 +461,7 @@ Fortitude (pwf):
 
 ### In File (WoWCombatLog.txt):
 ```
-RABLOG_PULL: 2025-10-12 09:45:30&...&5&Naxx40&...
+RABLOG_PULL: 2025-10-12 09:45:30&...&5&Naxx40&...&Patchwerk
 RABLOG_BAR: 1&motw&Mark&38&40&95&2&&
 RABLOG_PLAYERS_WITH: motw&Vovan [Priest; G1], Petya [Warrior; G2]
 RABLOG_PLAYERS_WITHOUT: motw&Kolya [Mage; G3], Misha [Rogue; G4]
@@ -466,9 +469,9 @@ RABLOG_END: 5
 ```
 
 ### In CSV (Excel):
-| BuffLabel | Buffed | Total | Percentage | PlayersWithBuff_Names | PlayersWithoutBuff_Names | PlayersWithoutBuff_Classes | PlayersWithoutBuff_Groups |
-|-----------|--------|-------|------------|----------------------|-------------------------|---------------------------|--------------------------|
-| Mark | 38 | 40 | 95 | Vovan, Petya | Kolya, Misha | Mage, Rogue | 3, 4 |
+| Target | BuffLabel | Buffed | Total | Percentage | PlayersWithBuff_Names | PlayersWithoutBuff_Names | PlayersWithoutBuff_Classes | PlayersWithoutBuff_Groups |
+|--------|-----------|--------|-------|------------|----------------------|-------------------------|---------------------------|--------------------------|
+| Patchwerk | Mark | 38 | 40 | 95 | Vovan, Petya | Kolya, Misha | Mage, Rogue | 3, 4 |
 
 ---
 

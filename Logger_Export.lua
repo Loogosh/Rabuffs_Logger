@@ -68,6 +68,7 @@ function RABLogger_GenerateTextExport()
         table.insert(output, string.format("Character: %s-%s (%s)", entry.character, entry.realm, entry.class))
         table.insert(output, string.format("Profile: %s | Group: %s (%d players)", 
             entry.profileName, entry.groupType, entry.groupSize))
+        table.insert(output, string.format("Target: %s", entry.target or "None"))
         table.insert(output, "")
         table.insert(output, "Buffs:")
         
@@ -90,12 +91,12 @@ function RABLogger_GenerateCSVExport()
     local output = {}
     
     -- Заголовок
-    table.insert(output, "EntryID,DateTime,RealTime,ServerTime,PullNumber,Character,Realm,Profile,GroupType,GroupSize,SourcePlayer,BuffLabel,BuffKey,Buffed,Total,Percentage,Fading")
+    table.insert(output, "EntryID,DateTime,RealTime,ServerTime,PullNumber,Character,Realm,Profile,GroupType,GroupSize,SourcePlayer,Target,BuffLabel,BuffKey,Buffed,Total,Percentage,Fading")
     
     -- Данные
     for i, entry in ipairs(RABLogger_Logs) do
         for _, bar in ipairs(entry.bars) do
-            table.insert(output, string.format("%d,%s,%s,%s,%d,%s,%s,%s,%s,%d,%s,%s,%s,%d,%d,%d,%d",
+            table.insert(output, string.format("%d,%s,%s,%s,%d,%s,%s,%s,%s,%d,%s,%s,%s,%s,%d,%d,%d,%d",
                 i,
                 entry.dateTime,
                 entry.realTime,
@@ -107,6 +108,7 @@ function RABLogger_GenerateCSVExport()
                 entry.groupType,
                 entry.groupSize,
                 entry.sourcePlayer,
+                entry.target or "None",
                 bar.label,
                 bar.buffKey,
                 bar.buffed,

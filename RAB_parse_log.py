@@ -19,7 +19,7 @@ def parse_combatlog_file(filepath: Path) -> List[Dict[str, Any]]:
     Parse WoWCombatLog.txt for RABLOG entries
     
     Format:
-    11/13 20:15:30.123  RABLOG_PULL: DateTime&RealTime&ServerTime&PullNum&Profile&Char&Realm&Source&GroupType/Size
+    11/13 20:15:30.123  RABLOG_PULL: DateTime&RealTime&ServerTime&PullNum&Profile&Char&Realm&Source&GroupType/Size&Target
     11/13 20:15:30.125  RABLOG_BAR: idx&key&label&buffed&total&pct&fade&groups&classes
     11/13 20:15:30.126  RABLOG_BAR: ...
     11/13 20:15:30.127  RABLOG_END: PullNum
@@ -52,6 +52,9 @@ def parse_combatlog_file(filepath: Path) -> List[Dict[str, Any]]:
                         group_type = group_parts[0] if len(group_parts) > 0 else "UNKNOWN"
                         group_size = int(group_parts[1]) if len(group_parts) > 1 else 0
                         
+                        # Parse target (added in newer version)
+                        target = data[9] if len(data) > 9 else "None"
+                        
                         current_entry = {
                             'logTimestamp': log_timestamp,
                             'dateTime': data[0],
@@ -64,6 +67,7 @@ def parse_combatlog_file(filepath: Path) -> List[Dict[str, Any]]:
                             'sourcePlayer': data[7],
                             'groupType': group_type,
                             'groupSize': group_size,
+                            'target': target,
                             'bars': []
                         }
             
@@ -163,6 +167,7 @@ def export_text(logs: List[Dict], output_file: Path):
         lines.append(f"Pull: {entry.get('pullNumber', 'N/A')} | Triggered by: {entry.get('sourcePlayer', 'N/A')}")
         lines.append(f"Character: {entry.get('character', 'N/A')}-{entry.get('realm', 'N/A')}")
         lines.append(f"Profile: {entry.get('profileName', 'N/A')} | Group: {entry.get('groupType', 'N/A')} ({entry.get('groupSize', 0)} players)")
+        lines.append(f"Target: {entry.get('target', 'None')}")
         lines.append("")
         lines.append("Buffs Status:")
         
@@ -206,7 +211,7 @@ def export_csv(logs: List[Dict], output_file: Path):
         writer.writerow([
             'EntryID', 'LogTimestamp', 'DateTime', 'RealTime', 'ServerTime', 
             'PullNumber', 'Character', 'Realm', 'Profile', 'GroupType', 'GroupSize',
-            'SourcePlayer', 'BuffLabel', 'BuffKey', 'Buffed', 'Total',
+            'SourcePlayer', 'Target', 'BuffLabel', 'BuffKey', 'Buffed', 'Total',
             'Percentage', 'Fading', 'TargetGroups', 'TargetClasses',
             'PlayersWithBuff_Names', 'PlayersWithBuff_Classes', 'PlayersWithBuff_Groups',
             'PlayersWithoutBuff_Names', 'PlayersWithoutBuff_Classes', 'PlayersWithoutBuff_Groups'
@@ -236,6 +241,7 @@ def export_csv(logs: List[Dict], output_file: Path):
                     entry.get('groupType', ''),
                     entry.get('groupSize', 0),
                     entry.get('sourcePlayer', ''),
+                    entry.get('target', 'None'),
                     bar.get('label', ''),
                     bar.get('buffKey', ''),
                     bar.get('buffed', 0),

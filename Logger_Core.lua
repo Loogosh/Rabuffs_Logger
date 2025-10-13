@@ -139,6 +139,7 @@ function RABLogger_LogState(pullNumber, triggerText, sourcePlayer, forcedProfile
         character = UnitName("player"),
         faction = UnitFactionGroup("player"),
         class = UnitClass("player"),
+        target = UnitName("target") or "None",      -- Текущая цель игрока
         
         -- Профиль и настройки
         profileName = forcedProfileName or RABui_Settings.currentProfile or "Default",
@@ -290,13 +291,15 @@ end
 -- ============================================================================
 
 function RABLogger_PrintLogEntry(entry)
+    local targetText = entry.target and entry.target ~= "None" and (" | Target: " .. entry.target) or ""
     DEFAULT_CHAT_FRAME:AddMessage(
-        string.format("|cff00ff00[RABLogger]|r Pull %d logged | %s (Server: %s) | %s | %d bars", 
+        string.format("|cff00ff00[RABLogger]|r Pull %d logged | %s (Server: %s) | %s | %d bars%s", 
             entry.pullNumber,
             entry.realTime,
             entry.serverTime,
             entry.profileName,
-            table.getn(entry.bars)),
+            table.getn(entry.bars),
+            targetText),
         0.3, 1, 0.3
     )
 end
@@ -308,7 +311,7 @@ end
 
 function RABLogger_WriteToFile(entry)
     -- Заголовок события - основная информация
-    local header = string.format("RABLOG_PULL: %s&%s&%s&%d&%s&%s&%s&%s&%s/%d",
+    local header = string.format("RABLOG_PULL: %s&%s&%s&%d&%s&%s&%s&%s&%s/%d&%s",
         entry.dateTime,           -- Полная дата-время
         entry.realTime,           -- Реальное время
         entry.serverTime,         -- Серверное время
@@ -318,7 +321,8 @@ function RABLogger_WriteToFile(entry)
         entry.realm,              -- Реалм
         entry.sourcePlayer,       -- Кто вызвал
         entry.groupType,          -- Тип группы
-        entry.groupSize           -- Размер группы
+        entry.groupSize,          -- Размер группы
+        entry.target or "None"    -- Текущая цель
     )
     
     CombatLogAdd(header)
@@ -1015,13 +1019,16 @@ function RABLogger_ShowLogs(count)
         local entry = RABLogger_Logs[i]
         
         -- Заголовок записи
+        local targetInfo = entry.target and entry.target ~= "None" 
+            and ("|cffaaaaaa Target: " .. entry.target .. "|r") or ""
         DEFAULT_CHAT_FRAME:AddMessage(
-            string.format("|cffaaaaaa#%d|r [%s / %s] Pull %d - %s", 
+            string.format("|cffaaaaaa#%d|r [%s / %s] Pull %d - %s %s", 
                 i,
                 entry.realTime,
                 entry.serverTime,
                 entry.pullNumber,
-                entry.profileName)
+                entry.profileName,
+                targetInfo)
         )
         
         -- Краткая статистика по барам
@@ -1072,6 +1079,9 @@ function RABLogger_ShowDetailedLog(index)
     DEFAULT_CHAT_FRAME:AddMessage(string.format("Character: %s-%s (%s)", entry.character, entry.realm, entry.class))
     DEFAULT_CHAT_FRAME:AddMessage(string.format("Profile: %s", entry.profileName))
     DEFAULT_CHAT_FRAME:AddMessage(string.format("Group: %s (%d players)", entry.groupType, entry.groupSize))
+    
+    local targetDisplay = entry.target or "None"
+    DEFAULT_CHAT_FRAME:AddMessage(string.format("Target: %s", targetDisplay))
     DEFAULT_CHAT_FRAME:AddMessage(" ")
     
     -- Проверяем, сохранены ли детальные данные по игрокам
