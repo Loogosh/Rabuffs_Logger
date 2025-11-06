@@ -149,6 +149,45 @@ def parse_combatlog_file(filepath: Path) -> List[Dict[str, Any]]:
     return logs
 
 
+def collect_unique_players(logs: List[Dict]) -> Dict[str, str]:
+    """
+    Collect unique players with their classes from all logs.
+    
+    Returns:
+        Dict with player names as keys and class name as values
+        Example: {'PlayerName': 'Warrior'}
+    """
+    players = {}
+    
+    for entry in logs:
+        for bar in entry.get('bars', []):
+            # Process players with buff
+            players_with_raw = bar.get('playersWithBuff', '')
+            if players_with_raw:
+                for player in players_with_raw.split(', '):
+                    # Parse format: "PlayerName [Class; G#]"
+                    match = re.match(r'(.+?)\s*\[(.+?);\s*G(\d+)\]', player.strip())
+                    if match:
+                        name = match.group(1)
+                        player_class = match.group(2)
+                        # Store only if not already present (keep first occurrence)
+                        if name not in players:
+                            players[name] = player_class
+            
+            # Process players without buff
+            players_without_raw = bar.get('playersWithoutBuff', '')
+            if players_without_raw:
+                for player in players_without_raw.split(', '):
+                    match = re.match(r'(.+?)\s*\[(.+?);\s*G(\d+)\]', player.strip())
+                    if match:
+                        name = match.group(1)
+                        player_class = match.group(2)
+                        if name not in players:
+                            players[name] = player_class
+    
+    return players
+
+
 def export_text(logs: List[Dict], output_file: Path):
     """Export logs as formatted text with player details"""
     lines = []
@@ -158,6 +197,30 @@ def export_text(logs: List[Dict], output_file: Path):
     lines.append(f"Total Entries: {len(logs)}")
     lines.append("=" * 80)
     lines.append("")
+    
+    # === НОВАЯ СЕКЦИЯ: Список игроков ===
+    players = collect_unique_players(logs)
+    if players:
+        lines.append("=" * 80)
+        lines.append(f"PLAYER ROSTER ({len(players)} players)")
+        lines.append("=" * 80)
+        lines.append("")
+        
+        # Группируем игроков по классам
+        players_by_class = {}
+        for name, player_class in players.items():
+            if player_class not in players_by_class:
+                players_by_class[player_class] = []
+            players_by_class[player_class].append(name)
+        
+        # Сортируем классы по имени, внутри каждого класса сортируем игроков
+        for class_name in sorted(players_by_class.keys()):
+            player_names = sorted(players_by_class[class_name])
+            lines.append(f"{class_name} : {', '.join(player_names)}")
+        
+        lines.append("")
+        lines.append("=" * 80)
+        lines.append("")
     
     for i, entry in enumerate(logs, 1):
         lines.append(f"--- Entry #{i} ---")
