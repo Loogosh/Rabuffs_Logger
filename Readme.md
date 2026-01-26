@@ -2,15 +2,26 @@
 
 Extension for RABuffs - automatic raid buff state logging.
 Based on - https://github.com/pepopo978/Rabuffs
+
+**⚠️ IMPORTANT:** Addon logs **ONLY** the profile named **"RAID"**.
+
+**Why "RAID" profile?**
+- Logger is hardcoded to use profile named "RAID" (no configuration needed)
+- Create it once in RABuffs addon: `/rab profile save RAID`
+- Logger checks if RAID profile exists before every log attempt
+- If not found → logging skipped with warning
+
 ---
 
 ## ⚡ Quick Cheat Sheet
 
 ```lua
-/rablog status        -- Check settings
-/rablog show 1        -- Last pull
-/rablog detail 1      -- Details with player names
-/rablog logpoint 5    -- Log 5 sec before pull (default)
+-- First: Create RAID profile in RABuffs addon
+/rab profile save RAID     -- (this is RABuffs command)
+
+-- Then use logger
+/rablog status             -- Check settings & RAID profile
+/rablog test               -- Test logging
 ```
 
 **Files:**
@@ -32,9 +43,11 @@ Based on - https://github.com/pepopo978/Rabuffs
    └── RABuffs_Logger/    (extension)
    ```
 3. `/reload` in game
+4. **⚠️ Create RAID profile in RABuffs addon:** `/rab profile save RAID`
 
 **Requirements:**
-- ✅ RABuffs (required)
+- ✅ RABuffs addon (required)
+- ✅ **Profile named "RAID"** in RABuffs (required)
 - ⭐ SuperWoW (recommended for file writing)
 - 🐍 Python 3.6+ (for log parsing)
 
@@ -42,42 +55,38 @@ Based on - https://github.com/pepopo978/Rabuffs
 
 ## 🚀 Quick Start
 
+**Step 1: Create RAID profile in RABuffs addon**
 ```lua
-/rablog status        -- check settings
-/rablog test 1        -- test entry
-/rablog show 1        -- view
+-- 1. Configure buffs in RABuffs (add bars, set groups, etc.)
+-- 2. Save as RAID profile:
+/rab profile save RAID
+```
 
+**Step 2: Verify & test logger**
+```lua
+/rablog status        -- check RAID profile exists
+/rablog test          -- test logging (writes to file)
+```
+
+**Step 3: Automatic logging**
+```lua
 -- BigWigs pull timer
 /pull 5               -- automatically logged as pull #5
 
--- Manual logging
-/rablog log Naxx40 6  -- log "Naxx40" profile as pull 6
+-- Or via chat triggers
+-- "pull 5" in raid chat → automatically logged
 ```
 
 ---
 
 ## 📋 All Commands
 
-### View Logs
+### Basic Commands
 ```lua
-/rablog show [N]          -- Last N entries (default 5)
-/rablog detail <N>        -- Detailed info for entry N (with player names)
-/rablog stats             -- Statistics
-/rablog status            -- Current settings
-```
-
-### Manual Logging
-```lua
-/rablog test [N]                  -- Current profile (pull N)
-/rablog log <profile> <N>         -- Specific profile by name
-/rablog logall <N>                -- ALL profiles at once
-```
-
-**Examples:**
-```lua
-/rablog test 999                  -- test
-/rablog log Naxx40 6              -- Naxx40 profile
-/rablog logall 6                  -- all profiles
+/rablog status            -- Current settings & RAID profile status
+/rablog test              -- Test logging (creates test entry)
+/rablog toggle            -- Enable/disable logging
+/rablog logpoint <N>      -- Log when N seconds remain before pull
 ```
 
 ### Trigger Management
@@ -100,43 +109,9 @@ Based on - https://github.com/pepopo978/Rabuffs
 - `тянем%s+(%d+)` → "тянем 5"
 - `пул%s+(%d+)` → "пул 10"
 
-### Profile Filter
-```lua
-/rablog profile list              -- Show filter
-/rablog profile add <name>         -- Add profile to auto-logging
-/rablog profile remove <name>      -- Remove profile from auto-logging
-/rablog profile clear             -- Clear (log only current)
-```
-
-**Examples:**
-```lua
-/rablog profile add Naxx_Healers
-/rablog profile add Naxx_Tanks
--- Now on pull both profiles are logged!
-
-/rablog profile clear             -- return to current only
-```
-
-### Settings
-```lua
-/rablog toggle        -- Enable/disable logging
-/rablog file          -- Enable/disable file writing (SuperWoW)
-/rablog memory        -- Enable/disable SavedVariables
-/rablog clear         -- Clear memory + marker in file
-/rablog logpoint <N>  -- Log when N seconds remain (default 5)
-/rablog export        -- Export instructions
-/rablog help          -- Help
-```
-
-**Important about `/rablog clear`:**
-- Clears memory (SavedVariables)
-- Adds `RABLOG_CLEAR` marker to file
-- Parser shows **only entries after** last clear
-- Old data remains in file but not processed
-
 **Logpoint Examples:**
 ```lua
-/rablog logpoint 5    -- log when 5 seconds remain
+/rablog logpoint 5    -- log when 5 seconds remain before pull
 /rablog logpoint 3    -- log when 3 seconds remain
 /rablog logpoint 10   -- log when 10 seconds remain
 ```
@@ -145,12 +120,14 @@ Based on - https://github.com/pepopo978/Rabuffs
 
 ## 🎯 How Auto-Logging Works
 
+**⚠️ REQUIREMENT:** Profile named "RAID" must exist!
+
 ### 1. BigWigs Pull Timer (PRIMARY)
 
 When **someone** does `/pull 10`:
 - BigWigs shows timer (10, 9, 8, 7, 6, **5**...)
 - Logger waits until **5 seconds** remain (configurable)
-- **At that moment** logs buff state
+- **At that moment** logs RAID profile buff state
 
 **Why wait 5 seconds?**
 - Players have time to apply missing buffs
@@ -166,24 +143,26 @@ When **someone** does `/pull 10`:
 ### 2. Chat Triggers
 
 When someone writes in raid/party chat:
-- "pull 6" → logs pull #6
-- "пулл 3" → logs pull #3
+- "pull 6" → logs RAID profile for pull #6
+- "пулл 3" → logs RAID profile for pull #3
 - Custom triggers via `/rablog trigger add`
+
+**If RAID profile doesn't exist** → logging is skipped with warning message
 
 ---
 
 ## 💾 Where Logs are Stored
 
-### With SuperWoW (recommended):
-**File:** `Logs/WoWCombatLog.txt`
-- ✅ Writing is **instant** (no /reload needed)
-- ✅ No limits
-- ✅ Automatically on each pull
+**File:** `Logs/WoWCombatLog.txt` (requires SuperWoW)
 
-### Without SuperWoW (fallback):
-**File:** `WTF/Account/<ACCOUNT>/SavedVariables/RABuffs_Logger.lua`
-- ⚠️ Needs `/reload` or game exit
-- ⚠️ Maximum 200 entries
+- ✅ Writing is **instant** (no /reload needed)
+- ✅ No limits on entries
+- ✅ Automatically on each pull
+- ✅ Parse with `RAB_parse_log.py`
+
+**⚠️ SuperWoW is REQUIRED:**
+- Without SuperWoW, logger cannot write to file
+- Download: https://github.com/balakethelock/SuperWoW
 
 ---
 
@@ -254,55 +233,48 @@ python RAB_parse_log.py -i WoWCombatLog.txt --stats
 
 ## 🎮 Usage Examples
 
-### Example 1: Basic Usage
+### Example 1: Initial Setup
 ```lua
-/rablog status        -- check
-[playing, someone does /pull 6]
-/rablog show 1        -- view
+-- In RABuffs addon: configure buffs, then save
+/rab profile save RAID
+
+-- In Logger: verify
+/rablog status        -- should show "Profile 'RAID': FOUND"
 ```
 
-### Example 2: Custom Trigger
+### Example 2: Testing
+```lua
+/rablog test          -- create test entry in WoWCombatLog.txt
+```
+
+### Example 3: Automatic Logging
+```lua
+[someone does /pull 6]
+-- RAID profile logged automatically at 5 sec mark to file
+```
+
+### Example 4: Custom Trigger
 ```lua
 /rablog trigger add go%s+(%d+)
-[RL writes "go 5" in chat]
--- automatically logged
-```
-
-### Example 3: Specific Profile
-```lua
-/rablog log Sapphiron 14
--- Logs "Sapphiron" profile without switching to it
-```
-
-### Example 4: Multiple Profiles Simultaneously
-```lua
-/rablog profile add Naxx_Healers
-/rablog profile add Naxx_Tanks
-[someone does /pull 6]
--- BOTH profiles logged automatically!
-```
-
-### Example 5: All Profiles
-```lua
-/rablog logall 0
--- Snapshot of all profiles at one point in time
+[RL writes "go 5" in raid chat]
+-- RAID profile logged automatically
 ```
 
 ---
 
 ## 🔍 What Gets Logged
 
-For each pull:
+For each pull (from RAID profile only):
 
 **Metadata:**
 - Time (real + server)
 - Pull number
 - Who initiated
-- RABuffs profile
+- RABuffs profile (always "RAID")
 - Group size
 - Current target
 
-**For each buff:**
+**For each buff in RAID profile:**
 - Statistics: 38/40 (95%)
 - **Names WITH buff:** Vovan, Petya, Ivan
 - **Names WITHOUT buff:** Kolya, Misha
@@ -316,40 +288,51 @@ For each pull:
 ```lua
 RABLogger_Settings = {
     enabled = true,              -- Enable/disable logging
-    logToFile = true,            -- Write to file (SuperWoW)
-    saveToMemory = true,         -- Save to SavedVariables
-    saveDetailed = true,         -- Detailed data (player names)
     logToChat = true,            -- Chat notifications
-    maxEntries = 200,            -- Max entries in memory
+    logToFile = true,            -- Write to file (always true)
+    saveDetailed = true,         -- Detailed data (player names)
+    pullLogPoints = {5},         -- Log when N seconds remain
     
     triggers = {                 -- Chat triggers
         "pull%s+(%d+)",
         "пулл%s+(%d+)",
         ...
-    },
-    
-    profileFilter = {}           -- Profile filter (empty = current)
+    }
 }
 ```
 
-Change via `/rablog` commands or manually via `/run`:
+Change via `/run`:
 ```lua
-/run RABLogger_Settings.maxEntries = 500
+/run RABLogger_Settings.pullLogPoints = {3}      -- log at 3 sec
+/run RABLogger_Settings.logToChat = false        -- disable chat notifications
 ```
+
+**⚠️ IMPORTANT:** 
+- Logger always uses profile named "RAID"
+- All logs go to `Logs/WoWCombatLog.txt` (SuperWoW required)
 
 ---
 
 ## 🐛 Troubleshooting
 
-**Logs not appearing?**
+**"Profile 'RAID' not found" error?**
 ```lua
+-- Create RAID profile in RABuffs addon:
+/rab profile save RAID
+/rablog status        -- verify it shows "FOUND"
+```
+
+**Logs not appearing in file?**
+```lua
+/rablog status        -- check RAID profile exists & SuperWoW status
 /rablog toggle        -- check that ENABLED
-/rablog test 999      -- create test entry
-/rablog show 1        -- should appear
+/rablog test          -- create test entry
+-- Check: Logs/WoWCombatLog.txt should have new entry
 ```
 
 **BigWigs not logging?**
 ```lua
+/rablog status        -- verify RAID profile exists first!
 /reload               -- refresh code
 /pull 5               -- try again
 ```
@@ -376,17 +359,17 @@ If `nil` or `false`:
 ```lua
 /run RABLogger_Settings.saveDetailed = true
 /reload
-/rablog test 5
-/rablog detail 1      -- now should have names
+/rablog test
+-- Check WoWCombatLog.txt - should have RABLOG_PLAYERS_WITH/WITHOUT entries
 ```
 
 ---
 
 ## 📖 What is RABuffs Profile
 
-**Profile** = set of bars (strips), each tracking a specific buff.
+**Profile in RABuffs addon** = set of bars (strips), each tracking a specific buff.
 
-**Example "Naxx40" profile:**
+**Example "RAID" profile structure:**
 ```lua
 {
     [1] = { buffKey="motw", label="Mark", groups="12345678", ... },
@@ -395,73 +378,65 @@ If `nil` or `false`:
 }
 ```
 
-**RABuffs Commands:**
-```lua
-/rab profile list             -- show all profiles
-/rab profile save Naxx40      -- create "Naxx40" profile
-/rab profile load Naxx40      -- load "Naxx40" profile
-```
+**How to create RAID profile:**
 
-**Why log different profiles?**
+1. **In RABuffs addon** - configure your buffs:
+   - Add/remove bars
+   - Set which groups to track (e.g., "12345678" for all groups)
+   - Configure which classes to track
+   - Set labels and priorities
 
-You might have:
-- Profile for all 40 players
-- Profile only for healers (groups 1-5)
-- Profile only for tanks
-- Profile for specific boss (Sapphiron with Shadow Protection)
+2. **Save as RAID profile:**
+   ```lua
+   /rab profile save RAID
+   ```
 
-Logger can log **multiple profiles simultaneously** on one pull!
+3. **Verify:**
+   ```lua
+   /rab profile list        -- should show RAID in list
+   /rablog status           -- should show "Profile 'RAID': FOUND"
+   ```
+
+**Important:** 
+- Logger works **ONLY** with profile named "RAID"
+- RAID profile is stored in **RABuffs addon**, not in Logger
+- If RAID profile doesn't exist, logging is skipped with warning
+- You can update RAID profile anytime - reconfigure and save again
 
 ---
 
 ## 🎯 Usage Scenarios
 
-### Scenario 1: Single Profile (simple)
+### Scenario 1: First Time Setup
 ```lua
--- Don't configure anything
--- On /pull 6 current profile is logged
+-- 1. In RABuffs: configure buffs → /rab profile save RAID
+-- 2. In Logger: /rablog status (verify RAID exists)
+-- 3. Test: /rablog test
+-- Ready to log automatically!
 ```
 
-### Scenario 2: Custom Trigger
+### Scenario 2: Automatic Logging (BigWigs)
+```lua
+-- Someone does /pull 10
+-- Logger automatically logs RAID profile at 5 sec mark
+-- Data written to: Logs/WoWCombatLog.txt
+```
+
+### Scenario 3: Custom Trigger
 ```lua
 /rablog trigger add go%s+(%d+)
 -- Now catches both "pull 5" and "go 5"
+-- Both trigger RAID profile logging
 ```
 
-### Scenario 3: Multiple Profiles
-```lua
-/rablog profile add Naxx_Healers
-/rablog profile add Naxx_Tanks
--- On /pull 6 BOTH profiles are logged
-```
-
-### Scenario 4: All Profiles (full snapshot)
-```lua
-/rablog logall 0
--- Logs ALL profiles at one point in time
-```
 
 ---
 
 ## 📝 Output Format
 
-### In Game (/rablog detail 1):
-```
-Pull 5 - Naxx40
-Target: Patchwerk
-
-Mark of the Wild (motw):
-  With buff: Vovan, Petya
-  Without buff: Kolya, Misha
-
-Fortitude (pwf):
-  With buff: Vovan, Petya, Kolya, Misha
-  Without buff: (all have it)
-```
-
 ### In File (WoWCombatLog.txt):
 ```
-RABLOG_PULL: 2025-10-12 09:45:30&...&5&Naxx40&...&Patchwerk
+RABLOG_PULL: 2025-10-12 09:45:30&...&5&RAID&...&Patchwerk
 RABLOG_BAR: 1&motw&Mark&38&40&95&2&&
 RABLOG_PLAYERS_WITH: motw&Vovan [Priest; G1], Petya [Warrior; G2]
 RABLOG_PLAYERS_WITHOUT: motw&Kolya [Mage; G3], Misha [Rogue; G4]
@@ -508,74 +483,76 @@ RABuffs_Logger/
 
 ## 🚀 Typical Raid
 
-### Before Raid:
+### One-Time Setup (first time only):
 ```lua
-/rablog status        -- check
-/rablog clear         -- clear (optional)
+-- In RABuffs addon: configure buffs
+/rab profile save RAID
+
+-- Verify logger works
+/rablog status        -- should show "Profile 'RAID': FOUND"
+/rablog test          -- test logging
+```
+
+### Before Each Raid:
+```lua
+/rablog status        -- quick check (RAID profile + SuperWoW)
 ```
 
 ### During Raid:
 - Do nothing! 
-- Logs are written automatically on `/pull`
+- RAID profile logged automatically on `/pull`
+- Logs written to: `Logs/WoWCombatLog.txt`
 
 ### After Raid:
-```lua
-/rablog stats         -- statistics
-```
-
 ```bash
-# Parse to CSV
+# Parse logs to CSV
 python RAB_parse_log.py -f csv -o raid_12_10.csv
-# Open in Excel
+# Open in Excel and analyze
 ```
 
 ---
 
 ## 💡 Advanced Features
 
-### Multi-Profile Analysis
+### Custom Triggers
 
-You have 3 profiles:
-- **Naxx_All** - all bars for all players
-- **Naxx_Healers** - only healers (groups 1-5)
-- **Naxx_Tanks** - only tanks
+Add your own chat patterns for auto-logging:
 
 ```lua
-/rablog profile add Naxx_All
-/rablog profile add Naxx_Healers
-/rablog profile add Naxx_Tanks
+/rablog trigger add go%s+(%d+)
+/rablog trigger add ready%s+(%d+)
+/rablog trigger list
 ```
 
-On `/pull 6` → **3 entries** (one for each profile)!
+Now when someone types "go 5" or "ready 10" in raid chat, RAID profile is logged automatically!
 
-**In CSV:**
-```csv
-PullNumber,Profile,BuffLabel,Buffed,Total,PlayersWithoutBuff_Names
-6,Naxx_All,Mark,40,40,
-6,Naxx_Healers,Mark,8,8,
-6,Naxx_Tanks,Mark,5,5,
-```
+### Flexible RAID Profile
 
-Analyze coverage separately for tanks/healers/all!
+Your RAID profile can be configured for different purposes:
 
-### Logging by Profile Name
+**Option 1: Full raid tracking**
+- Include all groups (1-8)
+- Track all essential buffs
 
+**Option 2: Role-specific tracking**
+- Configure only groups 1-5 (healers)
+- Track healer-specific buffs
+- Rename profile to RAID: `/rab profile save RAID`
+
+**Option 3: Boss-specific**
+- Add special buffs (Shadow Protection for Sapphiron)
+- Configure relevant groups only
+- Save as RAID profile
+
+**Switching setups:**
 ```lua
--- Current profile: Default
--- But want to log Sapphiron
+-- Save current setup as RAID
+/rab profile save RAID
 
-/rablog log Sapphiron 14
-
--- Current profile DOESN'T change
--- But Sapphiron is logged
-```
-
-### Snapshot All Profiles
-
-```lua
-/rablog logall 0
--- Logs ALL profiles as pull #0
--- Full state snapshot
+-- Load different setup later
+/rab profile load RAID_Backup
+-- Modify it
+/rab profile save RAID  -- overwrite with new setup
 ```
 
 ---
@@ -584,16 +561,13 @@ Analyze coverage separately for tanks/healers/all!
 
 | Command | What it does |
 |---------|-----------|
-| `/rablog test 1` | Test |
-| `/rablog show 5` | Last 5 |
-| `/rablog detail 1` | Details with names |
-| `/rablog stats` | Statistics |
-| `/rablog status` | Settings |
-| `/rablog log <prof> <N>` | Log profile |
-| `/rablog trigger add <pat>` | Add trigger |
-| `/rablog profile add <name>` | Add to filter |
-| `/rablog toggle` | Enable/disable |
-| `/rablog clear` | Clear |
+| `/rab profile save RAID` | Create RAID profile in RABuffs (required!) |
+| `/rablog status` | Check settings & RAID profile status |
+| `/rablog test` | Test logging (writes to file) |
+| `/rablog toggle` | Enable/disable logging |
+| `/rablog logpoint <N>` | Set log timing (N sec before pull) |
+| `/rablog trigger add <pat>` | Add chat trigger |
+| `/rablog trigger list` | Show all triggers |
 
 ---
 
@@ -606,7 +580,7 @@ Analyze coverage separately for tanks/healers/all!
 
 **No SuperWoW?**
 - Download: https://github.com/balakethelock/SuperWoW
-- Or use SavedVariables (needs /reload)
+- **Required** for file logging (addon won't work without it)
 
 **No Python?**
 - Download: https://www.python.org/downloads/

@@ -30,16 +30,11 @@ end
 -- Инициализация данных
 -- ============================================================================
 
-RABLogger_Logs = RABLogger_Logs or {}
-
 RABLogger_Settings = RABLogger_Settings or {
     enabled = true,
-    maxEntries = 200,           -- Макс записей в памяти (SavedVariables)
     logToChat = true,           -- Уведомления в чат
     logToFile = true,           -- Запись в файл через CombatLogAdd()
-    saveToMemory = true,        -- Сохранять в SavedVariables
-    saveDetailed = true,        -- Детальные настройки
-    logAllProfiles = false,     -- Логировать все профили одновременно
+    saveDetailed = true,        -- Детальные данные (имена игроков)
     pullLogPoints = {5},        -- Логировать когда остаётся N секунд (по умолчанию 5)
     
     -- Триггеры для перехвата
@@ -49,10 +44,6 @@ RABLogger_Settings = RABLogger_Settings or {
         "тянем%s+(%d+)",          -- "тянем 3"
         "пул%s+(%d+)",            -- "пул 5"
     },
-    
-    -- Профили для логирования (если не пусто, логирует только эти)
-    -- Формат: { "Naxx40", "BWL", "Patchwerk" } или {} для текущего
-    profileFilter = {},
 }
 
 -- ============================================================================
@@ -265,16 +256,6 @@ function RABLogger_LogState(pullNumber, triggerText, sourcePlayer, forcedProfile
         entry.detailedData = detailedData
     end
     
-    -- Сохранить в память (SavedVariables) если включено
-    if RABLogger_Settings.saveToMemory then
-        table.insert(RABLogger_Logs, entry)
-        
-        -- Ограничение размера лога
-        while table.getn(RABLogger_Logs) > RABLogger_Settings.maxEntries do
-            table.remove(RABLogger_Logs, 1)
-        end
-    end
-    
     -- Записать в файл через CombatLogAdd() если включено и доступно
     if RABLogger_Settings.logToFile and CombatLogAdd then
         RABLogger_WriteToFile(entry)
@@ -382,14 +363,18 @@ function RABLogger_ChatHook()
         if pullNum then
             pullNum = tonumber(pullNum)
             
-            -- Если есть фильтр профилей, логируем только их
-            if table.getn(RABLogger_Settings.profileFilter) > 0 then
-                for _, profileName in ipairs(RABLogger_Settings.profileFilter) do
-                    RABLogger_LogStateForProfile(profileName, pullNum, arg1, sourcePlayer)
-                end
+            -- Проверяем существование профиля "RAID"
+            local profileKey = RAB_GetProfileKey("RAID")
+            if RABui_Settings.Layout[profileKey] then
+                -- Логируем только профиль RAID
+                RABLogger_LogStateForProfile("RAID", pullNum, arg1, sourcePlayer)
             else
-                -- Логируем текущий активный профиль
-                RABLogger_LogState(pullNum, arg1, sourcePlayer)
+                if RABLogger_Settings.logToChat then
+                    DEFAULT_CHAT_FRAME:AddMessage(
+                        "|cffff0000[RABLogger]|r Profile 'RAID' not found - logging skipped",
+                        1, 0.5, 0
+                    )
+                end
             end
             
             break
@@ -461,26 +446,11 @@ function RABLogger_BigWigsAddonMessage()
                 
                 -- Если pull короче чем logpoint, логируем СРАЗУ
                 if dur <= logPoint then
-                    -- Логируем немедленно
-                    if table.getn(RABLogger_Settings.profileFilter) > 0 then
-                        for _, profileName in ipairs(RABLogger_Settings.profileFilter) do
-                            RABLogger_LogStateForProfile(
-                                profileName,
-                                dur,
-                                string.format("BigWigs /pull %d (immediate)", dur),
-                                sender
-                            )
-                        end
-                        
-                        if RABLogger_Settings.logToChat then
-                            DEFAULT_CHAT_FRAME:AddMessage(
-                                string.format("|cff00ff00[RABLogger]|r Logged %d profiles for pull %d immediately (by %s)", 
-                                    table.getn(RABLogger_Settings.profileFilter), dur, sender),
-                                0.3, 1, 0.3
-                            )
-                        end
-                    else
-                        RABLogger_LogState(
+                    -- Проверяем существование профиля "RAID"
+                    local profileKey = RAB_GetProfileKey("RAID")
+                    if RABui_Settings.Layout[profileKey] then
+                        RABLogger_LogStateForProfile(
+                            "RAID",
                             dur,
                             string.format("BigWigs /pull %d (immediate)", dur),
                             sender
@@ -488,8 +458,15 @@ function RABLogger_BigWigsAddonMessage()
                         
                         if RABLogger_Settings.logToChat then
                             DEFAULT_CHAT_FRAME:AddMessage(
-                                string.format("|cff00ff00[RABLogger]|r Logged pull %d immediately (by %s)", dur, sender),
+                                string.format("|cff00ff00[RABLogger]|r Logged RAID profile for pull %d immediately (by %s)", dur, sender),
                                 0.3, 1, 0.3
+                            )
+                        end
+                    else
+                        if RABLogger_Settings.logToChat then
+                            DEFAULT_CHAT_FRAME:AddMessage(
+                                "|cffff0000[RABLogger]|r Profile 'RAID' not found - logging skipped",
+                                1, 0.5, 0
                             )
                         end
                     end
@@ -541,37 +518,28 @@ function RABLogger_BigWigsTimerUpdate()
             -- Отмечаем что залогировали
             RABLogger_BigWigsLoggedAt[logPoint] = true
             
-            -- Если есть фильтр профилей, логируем только их
-            if table.getn(RABLogger_Settings.profileFilter) > 0 then
-                for _, profileName in ipairs(RABLogger_Settings.profileFilter) do
-                    RABLogger_LogStateForProfile(
-                        profileName,
-                        RABLogger_BigWigsPullNumber, 
-                        string.format("BigWigs /pull %d (at %d sec)", RABLogger_BigWigsPullNumber, logPoint),
-                        RABLogger_BigWigsRequester
-                    )
-                end
-                
-                if RABLogger_Settings.logToChat then
-                    DEFAULT_CHAT_FRAME:AddMessage(
-                        string.format("|cff00ff00[RABLogger]|r Logged %d profiles for pull %d at %d sec mark (by %s)", 
-                            table.getn(RABLogger_Settings.profileFilter), RABLogger_BigWigsPullNumber, logPoint, RABLogger_BigWigsRequester),
-                        0.3, 1, 0.3
-                    )
-                end
-            else
-                -- Логируем текущий активный профиль
-                RABLogger_LogState(
-                    RABLogger_BigWigsPullNumber,
+            -- Проверяем существование профиля "RAID"
+            local profileKey = RAB_GetProfileKey("RAID")
+            if RABui_Settings.Layout[profileKey] then
+                RABLogger_LogStateForProfile(
+                    "RAID",
+                    RABLogger_BigWigsPullNumber, 
                     string.format("BigWigs /pull %d (at %d sec)", RABLogger_BigWigsPullNumber, logPoint),
                     RABLogger_BigWigsRequester
                 )
                 
                 if RABLogger_Settings.logToChat then
                     DEFAULT_CHAT_FRAME:AddMessage(
-                        string.format("|cff00ff00[RABLogger]|r Logged pull %d at %d seconds mark (by %s)", 
+                        string.format("|cff00ff00[RABLogger]|r Logged RAID profile for pull %d at %d sec mark (by %s)", 
                             RABLogger_BigWigsPullNumber, logPoint, RABLogger_BigWigsRequester),
                         0.3, 1, 0.3
+                    )
+                end
+            else
+                if RABLogger_Settings.logToChat then
+                    DEFAULT_CHAT_FRAME:AddMessage(
+                        "|cffff0000[RABLogger]|r Profile 'RAID' not found - logging skipped",
+                        1, 0.5, 0
                     )
                 end
             end
@@ -606,18 +574,16 @@ function RABLogger_Init()
     -- Информация о файловом логировании
     if CombatLogAdd then
         DEFAULT_CHAT_FRAME:AddMessage(
-            "|cff00ff00[RABLogger]|r SuperWoW detected - direct file logging available!",
+            "|cff00ff00[RABLogger]|r SuperWoW detected - logging to |cffaaaaaa Logs/WoWCombatLog.txt|r",
             0.3, 1, 0.3
         )
-        if RABLogger_Settings.logToFile then
-            DEFAULT_CHAT_FRAME:AddMessage(
-                "|cff00ff00[RABLogger]|r File logging enabled → |cffaaaaaa Logs/WoWCombatLog.txt|r",
-                0.3, 1, 0.3
-            )
-        end
     else
         DEFAULT_CHAT_FRAME:AddMessage(
-            "|cffffaa00[RABLogger]|r SuperWoW not detected - using SavedVariables only",
+            "|cffff0000[RABLogger]|r SuperWoW not detected - file logging unavailable!",
+            1, 0.3, 0
+        )
+        DEFAULT_CHAT_FRAME:AddMessage(
+            "|cffffaa00Install SuperWoW:|r https://github.com/balakethelock/SuperWoW",
             1, 0.8, 0
         )
     end
@@ -642,74 +608,19 @@ SlashCmdList["RABLOGGER"] = function(msg)
     
     if cmd == "" or cmd == "help" then
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00=== RABuffs Logger v" .. RABLogger_Version .. " ===|r")
-        DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Basic Commands:|r")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog show [N]|r - Show last N entries (default 5)")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog detail [N]|r - Show detailed info for entry N")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog stats|r - Show statistics")
+        DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Commands:|r")
         DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog status|r - Show current settings")
-        DEFAULT_CHAT_FRAME:AddMessage(" ")
-        DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Logging Commands:|r")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog test|r - Test logging")
         DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog toggle|r - Enable/disable logging")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog file|r - Toggle file logging (SuperWoW)")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog memory|r - Toggle memory logging (SavedVars)")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog clear|r - Clear memory logs")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog logpoint <N>|r - Set log point (when N sec remaining)")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog logpoint <N>|r - Log at N seconds before pull")
         DEFAULT_CHAT_FRAME:AddMessage(" ")
-        DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Manual Logging:|r")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog log <profile> <pull>|r - Log specific profile")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog test [N]|r - Log current profile as test pull N")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog logall <pull>|r - Log ALL profiles at once")
-        DEFAULT_CHAT_FRAME:AddMessage(" ")
-        DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Configuration:|r")
+        DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Triggers:|r")
         DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog trigger list|r - Show triggers")
         DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog trigger add <pattern>|r - Add trigger")
         DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog trigger remove <N>|r - Remove trigger N")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog profile list|r - Show profile filter")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog profile add <name>|r - Add to filter")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog profile remove <name>|r - Remove from filter")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog profile clear|r - Clear filter (log current)")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cff00ff00/rablog export|r - Show export instructions")
-        
-    elseif cmd == "show" then
-        local count = tonumber(arg) or 5
-        RABLogger_ShowLogs(count)
-        
-    elseif cmd == "detail" then
-        local index = tonumber(arg)
-        if index then
-            RABLogger_ShowDetailedLog(index)
-        else
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff0000Usage: /rablog detail <number>|r", 1, 0, 0)
-        end
-        
-    elseif cmd == "stats" then
-        RABLogger_ShowStats()
-        
-    elseif cmd == "clear" then
-        local count = table.getn(RABLogger_Logs)
-        RABLogger_Logs = {}
-        
-        -- Пишем маркер очистки в файл (если SuperWoW)
-        if CombatLogAdd and RABLogger_Settings.logToFile then
-            local clearMarker = string.format("RABLOG_CLEAR: %s&%s&%s", 
-                date("%Y-%m-%d %H:%M:%S"),
-                UnitName("player"),
-                GetCVar("realmName")
-            )
-            CombatLogAdd(clearMarker)
-        end
-        
-        DEFAULT_CHAT_FRAME:AddMessage(
-            string.format("|cff00ff00[RABLogger]|r Cleared %d log entries from memory", count), 
-            1, 1, 0
-        )
-        
-        if CombatLogAdd and RABLogger_Settings.logToFile then
-            DEFAULT_CHAT_FRAME:AddMessage(
-                "|cff00ff00[RABLogger]|r Clear marker added to WoWCombatLog.txt",
-                0.3, 1, 0.3
-            )
-        end
+        DEFAULT_CHAT_FRAME:AddMessage(" ")
+        DEFAULT_CHAT_FRAME:AddMessage("|cffffaa00Important:|r Addon logs only 'RAID' profile. Create it first!")
+        DEFAULT_CHAT_FRAME:AddMessage("|cffffaa00Output:|r Logs/WoWCombatLog.txt (parse with RAB_parse_log.py)")
         
     elseif cmd == "toggle" then
         RABLogger_Settings.enabled = not RABLogger_Settings.enabled
@@ -718,41 +629,6 @@ SlashCmdList["RABLOGGER"] = function(msg)
                 RABLogger_Settings.enabled and "|cff00ff00ENABLED|r" or "|cffff0000DISABLED|r"),
             1, 1, 0
         )
-        
-    elseif cmd == "file" then
-        RABLogger_Settings.logToFile = not RABLogger_Settings.logToFile
-        DEFAULT_CHAT_FRAME:AddMessage(
-            string.format("|cff00ff00[RABLogger]|r File logging %s", 
-                RABLogger_Settings.logToFile and "|cff00ff00ENABLED|r" or "|cffff0000DISABLED|r"),
-            1, 1, 0
-        )
-        if RABLogger_Settings.logToFile then
-            if CombatLogAdd then
-                DEFAULT_CHAT_FRAME:AddMessage(
-                    "Logs will be written to: |cffaaaaaa Logs/WoWCombatLog.txt|r",
-                    0.3, 1, 0.3
-                )
-            else
-                DEFAULT_CHAT_FRAME:AddMessage(
-                    "|cffff0000WARNING:|r SuperWoW not detected - file logging unavailable",
-                    1, 0.5, 0
-                )
-            end
-        end
-        
-    elseif cmd == "memory" then
-        RABLogger_Settings.saveToMemory = not RABLogger_Settings.saveToMemory
-        DEFAULT_CHAT_FRAME:AddMessage(
-            string.format("|cff00ff00[RABLogger]|r Memory logging %s", 
-                RABLogger_Settings.saveToMemory and "|cff00ff00ENABLED|r" or "|cffff0000DISABLED|r"),
-            1, 1, 0
-        )
-        if RABLogger_Settings.saveToMemory then
-            DEFAULT_CHAT_FRAME:AddMessage(
-                "Logs saved to SavedVariables (max " .. RABLogger_Settings.maxEntries .. " entries)",
-                0.3, 1, 0.3
-            )
-        end
         
     elseif cmd == "status" then
         RABLogger_ShowStatus()
@@ -774,82 +650,27 @@ SlashCmdList["RABLOGGER"] = function(msg)
         end
         
     elseif cmd == "test" then
-        local pullNum = tonumber(arg) or 999
-        RABLogger_LogState(pullNum, "TEST", UnitName("player"))
-        DEFAULT_CHAT_FRAME:AddMessage(
-            string.format("|cff00ff00[RABLogger]|r Test pull %d logged", pullNum),
-            1, 1, 0
-        )
-        
-    elseif cmd == "log" then
-        -- /rablog log <profileName> <pullNumber>
-        local profileName, pullNum = string.match(arg, "^(%S+)%s+(%d+)$")
-        if profileName and pullNum then
-            RABLogger_LogStateForProfile(profileName, tonumber(pullNum), "MANUAL", UnitName("player"))
+        local profileKey = RAB_GetProfileKey("RAID")
+        if RABui_Settings.Layout[profileKey] then
+            RABLogger_LogStateForProfile("RAID", 0, "TEST", UnitName("player"))
+            DEFAULT_CHAT_FRAME:AddMessage(
+                "|cff00ff00[RABLogger]|r Test entry logged (RAID profile)",
+                1, 1, 0
+            )
         else
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff0000Usage: /rablog log <profileName> <pullNumber>|r", 1, 0, 0)
-            DEFAULT_CHAT_FRAME:AddMessage("Example: |cffffcc00/rablog log Naxx40 6|r", 1, 1, 0)
-        end
-        
-    elseif cmd == "logall" then
-        -- /rablog logall <pullNumber>
-        local pullNum = tonumber(arg)
-        if pullNum then
-            RABLogger_LogAllProfiles(pullNum)
-        else
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff0000Usage: /rablog logall <pullNumber>|r", 1, 0, 0)
-            DEFAULT_CHAT_FRAME:AddMessage("Example: |cffffcc00/rablog logall 6|r", 1, 1, 0)
+            DEFAULT_CHAT_FRAME:AddMessage(
+                "|cffff0000[RABLogger]|r Profile 'RAID' not found!",
+                1, 0, 0
+            )
+            DEFAULT_CHAT_FRAME:AddMessage("Create it in RABuffs addon: |cffffcc00/rab profile save RAID|r", 1, 1, 0)
         end
         
     elseif cmd == "trigger" then
         RABLogger_HandleTriggerCommand(arg)
         
-    elseif cmd == "profile" then
-        RABLogger_HandleProfileCommand(arg)
-        
-    elseif cmd == "export" then
-        RABLogger_ShowExportInfo()
-        
     else
         DEFAULT_CHAT_FRAME:AddMessage("|cffff0000Unknown command. Type |cffffcc00/rablog help|r", 1, 0, 0)
     end
-end
-
--- ============================================================================
--- Логирование всех профилей
--- ============================================================================
-
-function RABLogger_LogAllProfiles(pullNumber)
-    local profiles = RAB_GetAllProfiles()
-    
-    -- Добавляем Default если нет в списке
-    local hasDefault = false
-    for _, name in ipairs(profiles) do
-        if name == "Default" then
-            hasDefault = true
-            break
-        end
-    end
-    if not hasDefault then
-        table.insert(profiles, 1, "Default")
-    end
-    
-    if table.getn(profiles) == 0 then
-        DEFAULT_CHAT_FRAME:AddMessage("|cffff0000[RABLogger]|r No profiles found!", 1, 0, 0)
-        return
-    end
-    
-    DEFAULT_CHAT_FRAME:AddMessage(
-        string.format("|cff00ff00[RABLogger]|r Logging %d profiles for pull %d...", 
-            table.getn(profiles), pullNumber),
-        0.3, 1, 0.3
-    )
-    
-    for _, profileName in ipairs(profiles) do
-        RABLogger_LogStateForProfile(profileName, pullNumber, "LOGALL", UnitName("player"))
-    end
-    
-    DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RABLogger]|r Done!", 0.3, 1, 0.3)
 end
 
 -- ============================================================================
@@ -900,104 +721,6 @@ function RABLogger_HandleTriggerCommand(arg)
         
     else
         DEFAULT_CHAT_FRAME:AddMessage("|cffff0000Usage:|r /rablog trigger <list|add|remove>", 1, 0, 0)
-    end
-end
-
--- ============================================================================
--- Управление фильтром профилей
--- ============================================================================
-
-function RABLogger_HandleProfileCommand(arg)
-    local subcmd, param = string.match(arg, "^(%S+)%s*(.*)$")
-    subcmd = subcmd and string.lower(subcmd) or ""
-    
-    if subcmd == "" or subcmd == "list" then
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00=== Profile Filter ===|r")
-        
-        if table.getn(RABLogger_Settings.profileFilter) == 0 then
-            DEFAULT_CHAT_FRAME:AddMessage("  |cffffcc00(empty - logging current profile only)|r")
-        else
-            for i, profileName in ipairs(RABLogger_Settings.profileFilter) do
-                DEFAULT_CHAT_FRAME:AddMessage(string.format("  %d. |cffffcc00%s|r", i, profileName))
-            end
-        end
-        
-        DEFAULT_CHAT_FRAME:AddMessage(" ")
-        DEFAULT_CHAT_FRAME:AddMessage("Available profiles:")
-        
-        local profiles = RAB_GetAllProfiles()
-        table.insert(profiles, 1, "Default")
-        for _, name in ipairs(profiles) do
-            local marker = (name == (RABui_Settings.currentProfile or "Default")) and " |cff00ff00(current)|r" or ""
-            DEFAULT_CHAT_FRAME:AddMessage(string.format("  - %s%s", name, marker))
-        end
-        
-        DEFAULT_CHAT_FRAME:AddMessage(" ")
-        DEFAULT_CHAT_FRAME:AddMessage("Add: |cff00ff00/rablog profile add <name>|r")
-        DEFAULT_CHAT_FRAME:AddMessage("Remove: |cff00ff00/rablog profile remove <name>|r")
-        DEFAULT_CHAT_FRAME:AddMessage("Clear: |cff00ff00/rablog profile clear|r")
-        
-    elseif subcmd == "add" then
-        if param and param ~= "" then
-            -- Проверяем существование профиля
-            local profileKey = RAB_GetProfileKey(param)
-            if not RABui_Settings.Layout[profileKey] then
-                DEFAULT_CHAT_FRAME:AddMessage(
-                    string.format("|cffff0000[RABLogger]|r Profile '%s' does not exist!", param),
-                    1, 0, 0
-                )
-                return
-            end
-            
-            -- Проверяем, не добавлен ли уже
-            for _, name in ipairs(RABLogger_Settings.profileFilter) do
-                if name == param then
-                    DEFAULT_CHAT_FRAME:AddMessage(
-                        string.format("|cffffaa00[RABLogger]|r Profile '%s' already in filter", param),
-                        1, 0.8, 0
-                    )
-                    return
-                end
-            end
-            
-            table.insert(RABLogger_Settings.profileFilter, param)
-            DEFAULT_CHAT_FRAME:AddMessage(
-                string.format("|cff00ff00[RABLogger]|r Added '%s' to filter", param),
-                0.3, 1, 0.3
-            )
-        else
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff0000Usage: /rablog profile add <name>|r", 1, 0, 0)
-        end
-        
-    elseif subcmd == "remove" then
-        if param and param ~= "" then
-            for i, name in ipairs(RABLogger_Settings.profileFilter) do
-                if name == param then
-                    table.remove(RABLogger_Settings.profileFilter, i)
-                    DEFAULT_CHAT_FRAME:AddMessage(
-                        string.format("|cff00ff00[RABLogger]|r Removed '%s' from filter", param),
-                        1, 1, 0
-                    )
-                    return
-                end
-            end
-            DEFAULT_CHAT_FRAME:AddMessage(
-                string.format("|cffff0000[RABLogger]|r Profile '%s' not in filter", param),
-                1, 0, 0
-            )
-        else
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff0000Usage: /rablog profile remove <name>|r", 1, 0, 0)
-        end
-        
-    elseif subcmd == "clear" then
-        RABLogger_Settings.profileFilter = {}
-        DEFAULT_CHAT_FRAME:AddMessage(
-            "|cff00ff00[RABLogger]|r Profile filter cleared - will log current profile only",
-            1, 1, 0
-        )
-        
-    else
-        DEFAULT_CHAT_FRAME:AddMessage("|cffff0000Usage:|r /rablog profile <list|add|remove|clear>", 1, 0, 0)
     end
 end
 
@@ -1141,26 +864,19 @@ function RABLogger_ShowStatus()
     DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Current Settings:|r")
     DEFAULT_CHAT_FRAME:AddMessage(string.format("  Logging: %s", 
         RABLogger_Settings.enabled and "|cff00ff00ENABLED|r" or "|cffff0000DISABLED|r"))
-    DEFAULT_CHAT_FRAME:AddMessage(string.format("  File logging: %s %s", 
-        RABLogger_Settings.logToFile and "|cff00ff00ENABLED|r" or "|cffff0000DISABLED|r",
-        CombatLogAdd and "" or "|cffff0000(SuperWoW required)|r"))
-    DEFAULT_CHAT_FRAME:AddMessage(string.format("  Memory logging: %s", 
-        RABLogger_Settings.saveToMemory and "|cff00ff00ENABLED|r" or "|cffff0000DISABLED|r"))
     DEFAULT_CHAT_FRAME:AddMessage(string.format("  Chat notifications: %s", 
         RABLogger_Settings.logToChat and "|cff00ff00ENABLED|r" or "|cffff0000DISABLED|r"))
     DEFAULT_CHAT_FRAME:AddMessage(" ")
     
-    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Data:|r")
-    DEFAULT_CHAT_FRAME:AddMessage(string.format("  Logs in memory: |cff00ff00%d|r / %d max", 
-        table.getn(RABLogger_Logs), RABLogger_Settings.maxEntries))
-    
+    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Output File:|r")
     if CombatLogAdd then
-        DEFAULT_CHAT_FRAME:AddMessage("  File location: |cffaaaaaa Logs/WoWCombatLog.txt|r")
+        DEFAULT_CHAT_FRAME:AddMessage("  Location: |cffaaaaaa Logs/WoWCombatLog.txt|r")
+        DEFAULT_CHAT_FRAME:AddMessage("  Status: |cff00ff00Writing enabled|r")
     else
-        DEFAULT_CHAT_FRAME:AddMessage("  |cffff0000SuperWoW not detected|r - install from:")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cffaaaaaa https://github.com/balakethelock/SuperWoW|r")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffff0000SuperWoW not detected!|r")
+        DEFAULT_CHAT_FRAME:AddMessage("  Install from: |cffaaaaaa https://github.com/balakethelock/SuperWoW|r")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffffaa00File logging unavailable without SuperWoW|r")
     end
-    DEFAULT_CHAT_FRAME:AddMessage("  SavedVars: |cffaaaaaa WTF/Account/<ACCOUNT>/SavedVariables/RABuffs_Logger.lua|r")
     DEFAULT_CHAT_FRAME:AddMessage(" ")
     
     DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Active Triggers:|r")
@@ -1170,15 +886,15 @@ function RABLogger_ShowStatus()
     DEFAULT_CHAT_FRAME:AddMessage("  Manage: |cff00ff00/rablog trigger list|r")
     DEFAULT_CHAT_FRAME:AddMessage(" ")
     
-    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Profile Filter:|r")
-    if table.getn(RABLogger_Settings.profileFilter) == 0 then
-        DEFAULT_CHAT_FRAME:AddMessage("  |cffffcc00Current profile only:|r " .. (RABui_Settings.currentProfile or "Default"))
+    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Profile Configuration:|r")
+    local profileKey = RAB_GetProfileKey("RAID")
+    if RABui_Settings.Layout[profileKey] then
+        DEFAULT_CHAT_FRAME:AddMessage("  Profile 'RAID': |cff00ff00FOUND|r")
+        DEFAULT_CHAT_FRAME:AddMessage("  Logging is ready!")
     else
-        for i, profileName in ipairs(RABLogger_Settings.profileFilter) do
-            DEFAULT_CHAT_FRAME:AddMessage(string.format("  %d. |cffffcc00%s|r", i, profileName))
-        end
+        DEFAULT_CHAT_FRAME:AddMessage("  Profile 'RAID': |cffff0000NOT FOUND|r")
+        DEFAULT_CHAT_FRAME:AddMessage("  Create it: |cffffcc00/rab profile save RAID|r")
     end
-    DEFAULT_CHAT_FRAME:AddMessage("  Manage: |cff00ff00/rablog profile list|r")
     DEFAULT_CHAT_FRAME:AddMessage(" ")
     
     DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00BigWigs Pull Timer:|r")
